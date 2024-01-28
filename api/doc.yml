@@ -1,0 +1,227 @@
+---
+openapi: 3.0.0
+info:
+  version: 1.2.0
+  title: Aan Zee Microservice Starter
+  description: A starter for new microservice projects
+  license:
+    name: 'proprietary'
+    url: 'https://aanzee.nl'
+  contact:
+    email: development@aanzee.nl
+    name: Aanzee Development
+    url: 'https://aanzee.nl'
+servers:
+  - url: 'http://localhost:8581'
+    description: Local
+  - url: 'https://example-uat.aanzee.nl'
+    description: UAT
+  - url: 'https://live.aanzee.nl'
+    description: Production
+tags:
+  - name: Health
+    description: Health based endpoints
+paths:
+  /v1/health:
+    get:
+      summary: Retrieves the current health state of the application
+      description: Shows health state based on the error response
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Get health info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /v1/dummies:
+    get:
+      summary: Retrieves al the dummies, matchign the given name
+      tags:
+        - dummies
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+      operationId: get-v1-dummies
+      description: Gets all dummies
+    post:
+      summary: Creates a new dummy
+      operationId: post-v1-dummies
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDummyRequest'
+      tags:
+        - dummies
+  '/v1/dummies/{guid}':
+    get:
+      summary: Retrieves a single dummy
+      operationId: get-v1-dummies-guid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+      parameters:
+        - in: path
+          name: guid
+          required: true
+          schema:
+            type: string
+            example: '813f47f2-76e8-4a77-884d-20dba98dcaaf'
+          description: The guid of the dummy
+      tags:
+        - dummies
+    put:
+      summary: Updates a single dummy
+      operationId: put-v1-dummies-guid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDummyRequest'
+      parameters:
+        - in: path
+          name: guid
+          required: true
+          schema:
+            type: string
+            example: '1ab25e59-e87c-441d-a304-d8a0ae5fe1bb'
+          description: The guid of the dummy
+      tags:
+        - dummies
+    delete:
+      summary: Deletes a single dummy
+      operationId: delete-v1-dummies-guid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DummyResponse'
+      parameters:
+        - in: path
+          name: guid
+          required: true
+          schema:
+            type: string
+            example: '1ab25e59-e87c-441d-a304-d8a0ae5fe1bb'
+          description: The guid of the dummy
+      tags:
+        - dummies
+components:
+  schemas:
+    HAL:
+      type: object
+      description: Generic Response template used to provide standardized response encapsulation
+      properties:
+        _links:
+          type: object
+          description: Provides a set of JSON HAL/HATEOS based links to other resources
+          required:
+            - _self
+          properties:
+            _self:
+              type: string
+              description: A link to the current endpoint
+        meta:
+          type: object
+          description: Contains the parameters the call was made with and other meta information
+          required:
+            - query
+          properties:
+            query:
+              type: object
+              description: Contains various meta properties
+      required:
+        - _links
+        - meta
+    HealthResponse:
+      allOf:
+        - $ref: '#/components/schemas/HAL'
+        - properties:
+            data:
+              $ref: '#/components/schemas/Health'
+          required:
+            - data
+      type: object
+    Health:
+      type: object
+      properties:
+        deployed_at:
+          type: string
+          example: ""
+          description: "Time at which the API was deployed"
+        success:
+          type: string
+          description: Whether the deployment was successful
+          example: "true"
+    DummyResponse:
+      allOf:
+        - $ref: '#/components/schemas/HAL'
+        - type: object
+          description: Response given by the Dummy endpoints
+          properties:
+            data:
+              $ref: '#/components/schemas/Dummy'
+    Dummy:
+      type: object
+      description: A definition of a Dummy within the API
+      properties:
+        guid:
+          type: string
+          format: uuid
+          example: '813f47f2-76e8-4a77-884d-20dba98dcaaf'
+          readOnly: true
+        name:
+          type: string
+          description: Full descriptive name of te Dummy
+          example: Dummy Name
+    CreateDummyRequest:
+      type: object
+      properties:
+        guid:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+      required:
+        - guid
+        - name
+    UpdateDummyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Full descriptive name of te Dummy
+          minLength: 3
+          maxLength: 255
+      required:
+        - name
+...

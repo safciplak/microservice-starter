@@ -1,0 +1,102 @@
+---
+version: '3.7'
+
+services:
+
+  microservice-starter-debug:
+    container_name: microservice-starter-debug
+    build:
+      context: ../
+      dockerfile: ./build/service/Dockerfile
+      target: development
+    env_file:
+      - ../.env
+    command: 'startup.sh'
+    volumes:
+      - ../:/app/:cached
+    ports:
+      - "8581:8282"
+      - "2345:2345"
+    security_opt:
+      - "seccomp:unconfined"
+    depends_on:
+      - postgres
+    networks:
+      - microservice-starter-network
+
+  microservice-starter-build:
+    container_name: microservice-starter-build
+    build:
+      context: ../
+      dockerfile: ./build/service/Dockerfile
+      target: builder
+    env_file:
+      - ../.env
+    command: "./app/build/service"
+    depends_on:
+      - postgres
+    ports:
+      - "8282:8282"
+    networks:
+      - microservice-starter-network
+
+  microservice-starter-release:
+    container_name: microservice-starter-release
+    build:
+      context: ../
+      dockerfile: ./build/service/Dockerfile
+      target: final
+    env_file:
+      - ../.env
+    command: "/service/microservice-starter"
+    ports:
+      - "8283:8282"
+    networks:
+      - microservice-starter-network
+    depends_on:
+      - postgres
+
+  microservice-starter-published:
+    container_name: microservice-starter-published
+    image: aanzeenl/microservice-starter:latest
+    env_file:
+      - ../.env
+    ports:
+      - "8284:8282"
+    networks:
+      - microservice-starter-network
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: microservice-starter-postgres
+    image: aanzeenl/postgres:12@sha256:e650c010a52b0115a23baae0d193f34740f90e71aeaaddc6e931df70e333c6c9
+    environment:
+      POSTGRES_DB: microservice_database
+      POSTGRES_USER: sa
+      POSTGRES_PASSWORD: 123456
+    env_file: ../.env
+    ports:
+      - "5432:5432"
+    networks:
+      - microservice-starter-network
+    volumes:
+      - microservice-starter-postgres:/data/postgres
+      - ../src/database/seeds/:/seeds
+
+  mock:
+    container_name: microservice-starter-mock
+    build:
+      context: ../
+      dockerfile: ./build/mock/Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - microservice-starter-network
+
+networks:
+  microservice-starter-network:
+
+volumes:
+  microservice-starter-postgres:
+...

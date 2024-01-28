@@ -1,0 +1,7 @@
+*.env
+*/vendor/*
+__debug_bin
+.idea
+.vscode
+.DS_Store
+.git

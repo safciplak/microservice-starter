@@ -1,0 +1,14 @@
+{
+  "data": {
+    "deployed_at": "2020-08-13T09:18:56Z",
+    "success": "true"
+  },
+  "_links": {
+    "_self": "/v1/health"
+  },
+  "meta": {
+    "query": {
+
+    }
+  }
+}

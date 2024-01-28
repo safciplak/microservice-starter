@@ -1,0 +1,15 @@
+---
+version: '3.7'
+
+services:
+  newman-integration-tests:
+    image: postman/newman:alpine
+    container_name: postman-newman
+    command: 'run "Microservice Integration Tests.postman_collection.json" -e "Microservice (newman).postman_environment.json"'
+    volumes:
+      - ../docs:/etc/newman
+    depends_on:
+      - microservice-starter-debug
+    networks:
+      - microservice-starter-network
+...

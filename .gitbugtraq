@@ -1,0 +1,5 @@
+[bugtraq "jira"]
+ projects = VDVCP,VDVSP,VDVCNO,VDVI,VDVF,VDVDEV,OIVDV,VP,VPL
+ url = https://aanzee.atlassian.net/browse/%PROJECT%-%BUGID%
+ loglinkregex = %PROJECT%-\\d+
+ logregex = \\d+

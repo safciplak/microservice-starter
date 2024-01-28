@@ -1,0 +1,104 @@
+---
+image:
+  name: aanzeenl/go-pipeline
+  username: $DOCKER_HUB_USERNAME
+  password: $DOCKER_HUB_PASSWORD
+
+definitions:
+  steps:
+    - step: &lint
+        name: 'Lint'
+        script:
+          - mkdir reports
+          - set -o pipefail golangci-lint run --out-format checkstyle --path-prefix="${PWD}" | tee ./reports/checkstyle-result.xml
+        after-script:
+          - pipe: atlassian/checkstyle-report:0.2.0
+            variables:
+              REPORT_FAIL_SEVERITY: 'warn'
+        artifacts:
+          - reports/**
+    - step: &unit-test
+        name: 'Unit test'
+        script:
+          - mkdir test-reports
+          - mkdir reports
+          - gotestsum --jsonfile ./reports/gotest-report.json --junitfile ./test-reports/gotest-report.xml -- -coverprofile=./reports/gotest-coverage.out ./...
+        artifacts:
+          - reports/**
+    - step: &sonar
+        name: 'Sonar Scanner'
+        image:
+          name: aanzeenl/sonarqube-pipeline
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        script:
+          - git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+          - git fetch --depth=10000 origin
+          # TODO: add a single tag to the repo before enabling the next line
+          # - PROJECT_VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+          - bash sonarqube.sh
+    - step: &dockerhub
+        name: 'Dockerhub Deploy'
+        size: 2x
+        image:
+          name: aanzeenl/rancher-pipeline
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        services:
+          - docker
+        script:
+          - mkdir /service
+          - cp -r * /service
+          - export CI_TAG_AUTO="${BITBUCKET_TAG}"
+          - export CI_COMMIT_ID="${BITBUCKET_COMMIT}"
+          - export CI_BRANCH="${BITBUCKET_BRANCH}"
+          - export DOCKER_REGISTRY_USERNAME="${DOCKER_HUB_USERNAME}"
+          - export DOCKER_REGISTRY_PASSWORD="${DOCKER_HUB_PASSWORD}"
+          - bash release-dockerhub.sh
+    - step: &rancher
+        name: 'Rancher Deploy'
+        image:
+          name: aanzeenl/rancher-pipeline
+          username: $DOCKER_HUB_USERNAME
+          password: $DOCKER_HUB_PASSWORD
+        services:
+          - docker
+        script:
+          - mkdir /service
+          - cp -r * /service
+          - export CI_COMMIT_ID="${BITBUCKET_COMMIT}"
+          - export CI_BUILD_ID="${BITBUCKET_BUILD_NUMBER}"
+          - export CI_REPO_NAME="${BITBUCKET_REPO_SLUG}"
+          - export CI_BRANCH="${BITBUCKET_BRANCH}"
+          - export CI_STRING_TIME=$( date '+%FT%H:%M:%S%Z' )
+          - bash release-rancher.sh
+
+pipelines:
+  # Staging branches will be automatically deployed
+  branches:
+    staging/*:
+      - parallel:
+          - step: *lint
+          - step: *unit-test
+      - step: *dockerhub
+      - step: *rancher
+      - step: *sonar
+
+  # Pull requests will be automatically sent to sonarqube
+  pull-requests:
+    '**':
+      - parallel:
+          - step: *lint
+          - step: *unit-test
+      - step: *sonar
+
+  # Live deployments will remain manual
+  custom:
+    "Deploy to LIVE":
+      - parallel:
+          - step: *lint
+          - step: *unit-test
+      - step: *dockerhub
+      - step: *rancher
+      - step: *sonar
+...
